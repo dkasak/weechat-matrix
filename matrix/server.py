@@ -81,10 +81,16 @@ from .buffer import OwnAction, OwnMessage, RoomBuffer
 from .config import ConfigSection, Option, ServerBufferType
 from .globals import SCRIPT_NAME, SERVERS, W, MAX_EVENTS, TYPING_NOTICE_TIMEOUT
 from .utf import utf8_decode
-from .utils import create_server_buffer, key_from_value, server_buffer_prnt
+from .utils import (
+    create_server_buffer,
+    key_from_value,
+    server_buffer_prnt,
+    color_pair,
+    string_color
+)
 from .uploads import Upload
 
-from .colors import Formatted, FormattedString, DEFAULT_ATTRIBUTES
+from .markdown_parser import Parser
 
 try:
     from urllib.parse import urlparse
@@ -101,7 +107,7 @@ EncrytpionQueueItem = NamedTuple(
     "EncrytpionQueueItem",
     [
         ("message_type", str),
-        ("message", Union[Formatted, Upload]),
+        ("body", Union[Formatted, Parser]),
     ],
 )
 
@@ -955,7 +961,7 @@ class MatrixServer(object):
         )])
 
         own_message = OwnMessage(
-            self.user_id, 0, "", uuid, upload.room_id, formatted
+            self.user_id, 0, "", uuid, upload.room_id, body
         )
 
         room_buffer.sent_messages_queue[uuid] = own_message
@@ -1015,7 +1021,7 @@ class MatrixServer(object):
     def room_send_message(
         self,
         room_buffer,  # type: RoomBuffer
-        formatted,    # type: Formatted
+        message,      # type: Union[Parser, str]
         msgtype="m.text",  # type: str
         ignore_unverified_devices=False,  # type: bool
     ):
@@ -1024,11 +1030,21 @@ class MatrixServer(object):
 
         assert self.client
 
-        content = {"msgtype": msgtype, "body": formatted.to_plain()}
+        if isinstance(message, Parser):
+            body = message.to_plain()
+            formatted_body = message.to_html()
 
-        if formatted.is_formatted():
+            if body == formatted_body:
+                formatted_body = None
+        else:
+            body = message
+            formatted_body = None
+
+        content = {"msgtype": msgtype, "body": body}
+
+        if formatted_body:
             content["format"] = "org.matrix.custom.html"
-            content["formatted_body"] = formatted.to_html()
+            content["formatted_body"] = formatted_body
 
         try:
             uuid = self.room_send_event(
@@ -1037,7 +1053,7 @@ class MatrixServer(object):
                 ignore_unverified_devices=ignore_unverified_devices
             )
         except (EncryptionError, GroupEncryptionError):
-            message = EncrytpionQueueItem(msgtype, formatted)
+            message = EncrytpionQueueItem(msgtype, message)
             self.encryption_queue[room.room_id].append(message)
             return False
 
@@ -1047,7 +1063,7 @@ class MatrixServer(object):
             message_class = OwnMessage
 
         own_message = message_class(
-            self.user_id, 0, "", uuid, room.room_id, formatted
+            self.user_id, 0, "", uuid, room.room_id, message
         )
 
         room_buffer.sent_messages_queue[uuid] = own_message
@@ -1070,22 +1086,28 @@ class MatrixServer(object):
         """
         if G.CONFIG.network.print_unconfirmed_messages:
             room_buffer.printed_before_ack_queue.append(message.uuid)
-            plain_message = message.formatted_message.to_weechat()
+
+            if isinstance(message.body, Parser):
+                plain_message = message.body.to_weechat()
+            else:
+                plain_message = message.body
+
             plain_message = W.string_remove_color(plain_message, "")
-            attributes = DEFAULT_ATTRIBUTES.copy()
-            attributes["fgcolor"] = G.CONFIG.color.unconfirmed_message_fg
-            attributes["bgcolor"] = G.CONFIG.color.unconfirmed_message_bg
-            new_formatted = Formatted([FormattedString(
+
+            plain_message = string_color(
                 plain_message,
-                attributes
-            )])
+                color_pair(
+                    G.CONFIG.color.unconfirmed_message_fg,
+                    G.CONFIG.color.unconfirmed_message_bg
+                )
+            )
 
             new_message = copy.copy(message)
-            new_message.formatted_message = new_formatted
+            new_message.body = plain_message
 
-            if isinstance(new_message, OwnAction):
+            if isinstance(message, OwnAction):
                 room_buffer.self_action(new_message)
-            elif isinstance(new_message, OwnMessage):
+            elif isinstance(message, OwnMessage):
                 room_buffer.self_message(new_message)
 
     def keys_upload(self):

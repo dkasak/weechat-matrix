@@ -23,7 +23,7 @@ import pprint
 from builtins import super
 from functools import partial
 from collections import deque
-from typing import Dict, List, NamedTuple, Optional, Set
+from typing import Dict, List, NamedTuple, Optional, Set, Union
 from uuid import UUID
 
 from nio import (
@@ -53,7 +53,6 @@ from nio import (
 )
 
 from . import globals as G
-from .colors import Formatted
 from .config import RedactType
 from .globals import SCRIPT_NAME, SERVERS, W, TYPING_NOTICE_TIMEOUT
 from .utf import utf8_decode
@@ -63,6 +62,7 @@ from .utils import (
     string_strikethrough,
     color_pair,
 )
+from .markdown_parser import Parser
 
 
 @attr.s
@@ -72,7 +72,13 @@ class OwnMessages(object):
     event_id = attr.ib(type=str)
     uuid = attr.ib(type=str)
     room_id = attr.ib(type=str)
-    formatted_message = attr.ib(type=Formatted)
+    body = attr.ib(type=Union[Parser, str])
+
+    def get_body(self):
+        if isinstance(self.body, Parser):
+            return self.body.to_weechat()
+        else:
+            return self.body
 
 
 class OwnMessage(OwnMessages):
@@ -101,7 +107,7 @@ def room_buffer_input_cb(server_name, buffer, input_data):
     if not data:
         data = input_data
 
-    formatted_data = Formatted.from_input_line(data)
+    formatted_data = Parser.from_weechat(data)
 
     try:
         server.room_send_message(room_buffer, formatted_data, "m.text")
@@ -1357,7 +1363,7 @@ class RoomBuffer(object):
             formatted = None
 
             if event.formatted_body:
-                formatted = Formatted.from_html(event.formatted_body)
+                formatted = Parser.from_html(event.formatted_body)
 
             data = formatted.to_weechat() if formatted else event.body
 
@@ -1494,9 +1500,11 @@ class RoomBuffer(object):
             )
 
     def self_message(self, message):
-        # type: (OwnMessage) -> None
+        # type: (OwnMessages) -> None
         nick = self.find_nick(self.room.own_user_id)
-        data = message.formatted_message.to_weechat()
+
+        data = message.get_body()
+
         if message.event_id:
             tags = [SCRIPT_NAME + "_id_{}".format(message.event_id)]
         else:
@@ -1508,6 +1516,9 @@ class RoomBuffer(object):
     def self_action(self, message):
         # type: (OwnMessage) -> None
         nick = self.find_nick(self.room.own_user_id)
+
+        data = message.get_body()
+
         date = message.age
         if message.event_id:
             tags = [SCRIPT_NAME + "_id_{}".format(message.event_id)]
@@ -1515,7 +1526,7 @@ class RoomBuffer(object):
             tags = [SCRIPT_NAME + "_uuid_{}".format(message.uuid)]
 
         self.weechat_buffer.self_action(
-            nick, message.formatted_message.to_weechat(), date, tags
+            nick, data, date, tags
         )
 
     @staticmethod
@@ -1548,16 +1559,18 @@ class RoomBuffer(object):
 
     def replace_printed_line_by_uuid(self, uuid, new_message):
         """Replace already printed lines that are greyed out with real ones."""
+        body = new_message.get_body()
+
         if isinstance(new_message, OwnAction):
             displayed_nick = self.displayed_nicks[self.room.own_user_id]
             user = self.weechat_buffer._get_user(displayed_nick)
             data = self.weechat_buffer._format_action(
                 user,
-                new_message.formatted_message.to_weechat()
+                body,
             )
             new_lines = data.split("\n")
         else:
-            new_lines = new_message.formatted_message.to_weechat().split("\n")
+            new_lines = body.split("\n")
 
         line_count = len(new_lines)
 
@@ -1600,7 +1613,7 @@ class RoomBuffer(object):
 
         formatted = None
         if event.formatted_body:
-            formatted = Formatted.from_html(event.formatted_body)
+            formatted = Parser.from_html(event.formatted_body)
 
         data = formatted.to_weechat() if formatted else event.body
         # TODO this isn't right if the data has multiple lines, that is
@@ -1658,7 +1671,7 @@ class RoomBuffer(object):
         formatted = None
 
         if event.formatted_body:
-            formatted = Formatted.from_html(event.formatted_body)
+            formatted = Parser.from_html(event.formatted_body)
 
         data = formatted.to_weechat() if formatted else event.body
         user = self.weechat_buffer._get_user(nick)
