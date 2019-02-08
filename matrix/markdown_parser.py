@@ -119,6 +119,9 @@ class MatrixHtmlParser(HTMLParser):
             return HTMLParser.unescape(self, text)
 
     def open_element(self, tag):
+        if tag not in MatrixHtmlParser.supported_tags:
+            return
+
         new_node = etree.SubElement(self.current_node, tag)
         # TODO limit tag nesting to 100 levels per spec.
         self.node_stack.append(self.current_node)
@@ -126,14 +129,26 @@ class MatrixHtmlParser(HTMLParser):
         self.last_node = None
 
     def close_element(self, tag):
-        if not self.current_node:
-            pass
+        if tag not in MatrixHtmlParser.supported_tags:
+            return
 
-        elif not self.current_node.tag == tag:
-            etree.SubElement(self.current_node, tag)
+        if self.current_node is None:
+            # this should never happen; if it does, it's an error in the
+            # implementation
+            raise ValueError(
+                "Trying to close a tag (<{}>)"
+                ", but there's no current node.".format(tag)
+            )
+
+        if self.current_node.tag != tag:
+            # open a new tag instead of erroring out because of mismatch
+            self.open_element(tag)
+            return
 
         if not self.node_stack:
-            self.current_node = etree.Element("div")
+            # treat spurious close tags as opening a phantom div
+            self.open_element("div")
+            return
 
         self.last_node = self.current_node
         self.current_node = self.node_stack.pop()
@@ -151,8 +166,7 @@ class MatrixHtmlParser(HTMLParser):
                 self.last_node.tail += text
 
     def handle_starttag(self, tag, attrs):
-        if tag in MatrixHtmlParser.supported_tags:
-            self.open_element(tag)
+        self.open_element(tag)
 
         if tag in ["font", "span"]:
             for key, value in attrs:
@@ -167,8 +181,7 @@ class MatrixHtmlParser(HTMLParser):
                     self.current_node.set("class", lang)
 
     def handle_endtag(self, tag):
-        if tag in MatrixHtmlParser.supported_tags:
-            self.close_element(tag)
+        self.close_element(tag)
 
     def handle_data(self, data):
         self.add_text(data)
