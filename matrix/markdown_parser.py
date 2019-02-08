@@ -473,9 +473,9 @@ class Parser(Markdown):
 
         elif attribute == "del":
             return "{}{}{}".format(
-                "\x1b[09m",
+                W.color("strikethrough"),
                 text,
-                "\x1b[29m")
+                W.color("-strikethrough"))
 
         elif attribute == "font":
             color = color_html_to_weechat(element.get("data-mx-color"))

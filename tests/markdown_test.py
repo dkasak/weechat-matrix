@@ -252,15 +252,15 @@ class TestClass(unittest.TestCase):
     def test_weechat_formatter_del(self):
         self.assertParserRendersWeechat(
             "<del>Hello</del>",
-            "\x1b[09mHello\x1b[29m"
+            "\x1b[09mHello\x1b[029m"
         )
         self.assertParserRendersWeechat(
             "<strong><del>Hello</del></strong>",
-            "\x1b[01m\x1b[09mHello\x1b[29m\x1b[021m"
+            "\x1b[01m\x1b[09mHello\x1b[029m\x1b[021m"
         )
         self.assertParserRendersWeechat(
             "<del><strong>Hello</strong></del>",
-            "\x1b[09m\x1b[01mHello\x1b[021m\x1b[29m"
+            "\x1b[09m\x1b[01mHello\x1b[021m\x1b[029m"
         )
 
     def test_weechat_formatter_multiple_childs(self):

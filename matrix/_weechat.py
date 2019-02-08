@@ -103,16 +103,18 @@ def color(color_name):
         return "48;5;{}".format(color_code)
 
     attributes = {
-        "bold":       "1",
-        "-bold":      "21",
-        "reverse":    "27",
-        "-reverse":   "21",
-        "italic":     "3",
-        "-italic":    "23",
-        "underline":  "4",
-        "-underline": "24",
-        "reset":      "0",
-        "resetcolor": "39"
+        "bold":            "1",
+        "-bold":          "21",
+        "reverse":        "27",
+        "-reverse":       "21",
+        "italic":          "3",
+        "-italic":        "23",
+        "underline":       "4",
+        "-underline":     "24",
+        "strikethrough":   "9",
+        "-strikethrough": "29",
+        "reset":           "0",
+        "resetcolor":     "39"
     }
 
     short_attributes = {
