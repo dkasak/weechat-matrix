@@ -406,18 +406,17 @@ class Parser(Markdown):
         supported.
         """
         parser = cls()
-        parser.source = input_string
 
         if not input_string.strip():
+            parser.source = ''
             parser.document_tree = etree.Element("")
             return parser
 
-        source = str(input_string)
-
-        parser.lines = source.split("\n")
+        parser.lines = input_string.split("\n")
         for prep in parser.preprocessors:
             parser.lines = prep.run(parser.lines)
 
+        parser.source = "\n".join(parser.lines)
         root = parser.parser.parseDocument(parser.lines).getroot()
 
         for treeprocessor in parser.treeprocessors:

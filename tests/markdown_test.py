@@ -362,3 +362,5 @@ class TestClass(unittest.TestCase):
         self.assertParserRendersPlain("[abc]{ fg=black bg=red}", "abc")
         self.assertParserRendersPlain("[abc]{   fg=black bg=red  }", "abc")
         self.assertParserRendersPlain("*[abc]{fg=black bg=red}*", "*abc*")
+        self.assertParserRendersPlain("\x1d[abc]{fg=red}\x0f", "*abc*")
+        self.assertParserRendersPlain("\x02\x1d[abc]{fg=red}\x0f", "***abc***")
