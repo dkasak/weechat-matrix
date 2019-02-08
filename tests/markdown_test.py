@@ -316,6 +316,11 @@ class TestClass(unittest.TestCase):
         )
 
         self.assertParserRendersWeechat(
+            "foo <code>bar</code>",
+            "foo \x1b[038;5;4mbar\x1b[00m"
+        )
+
+        self.assertParserRendersWeechat(
             "<pre><code class=language-python>print(\"Hello world\")</code></pre>",
             "\x1b[038;5;70m\x1b[01mprint\x1b[021m\x1b[039m\x1b[038;5;252m"
             "(\x1b[039m\x1b[038;5;214m\"Hello world\"\x1b[039m\x1b[038;5;252m)"
