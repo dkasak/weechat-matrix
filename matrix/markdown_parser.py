@@ -549,7 +549,7 @@ class Parser(Markdown):
             return text
 
     def _to_weechat(self, element, preformatted=False):
-        text = ""
+        text = (element.text or "")
 
         if element.tag == "pre":
             preformatted = True
@@ -557,7 +557,6 @@ class Parser(Markdown):
         for child in element:
             text += self._to_weechat(child, preformatted)
 
-        text += (element.text or "")
         text = self._add_attribute(text, element, preformatted)
         text += (element.tail or "")
 
