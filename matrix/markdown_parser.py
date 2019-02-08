@@ -20,6 +20,7 @@ from __future__ import unicode_literals
 
 import html
 import textwrap
+import re
 
 from builtins import super, str
 from enum import Enum
@@ -59,6 +60,14 @@ except ImportError:
     from html.parser import HTMLParser
 
 
+# Regex patterns for custom Markdown extensions
+
+# Color, e.g. [text]{fg=black bg=red}
+color_re = (r"\[([^\]]+)\]\{\s*(fg|bg)=([a-z]+|#[\da-fA-F]{6})\s*"
+            r"(?:\s+(fg|bg)=([a-z]+|#[\da-fA-F]{6}))?\s*\}")
+
+# Underline
+underline_re = r"(~)(.*?)~"
 
 
 DEFAULT_ATTRIBUTES = {
@@ -300,6 +309,7 @@ class WeechatToMarkdown(Preprocessor):
                     attributes["bgcolor"] = color_line_to_weechat(color_string)
                 else:
                     attributes["bgcolor"] = None
+
             # Reset
             elif line[i] == reset:
                 if text:
@@ -374,12 +384,7 @@ class Weechat(Extension):
 
         md.preprocessors.register(WeechatToMarkdown(md), 'weechattomd', 100)
 
-        underline_re =  r"(~)(.*?)~"
         u_tag = SimpleTagPattern(underline_re, "u")
-
-        color_re = (r"\[([^\]]+)\]\{\s*(fg|bg)=([a-z]+|#[\da-fA-F]{6})\s*"
-                    r"(?:\s+(fg|bg)=([a-z]+|#[\da-fA-F]{6}))?\s*\}")
-
         font_tag = MarkdownColor(color_re)
 
         md.inlinePatterns.register(u_tag, "underline", 75)
@@ -573,7 +578,12 @@ class Parser(Markdown):
             return text
 
     def _to_plain(self, element):
-        return self.source
+        plain = self.source
+
+        # remove custom color syntax
+        plain = re.sub(color_re, r"\1", plain)
+
+        return plain
 
     def to_plain(self):
         """Convert the parsed document to a plain string.

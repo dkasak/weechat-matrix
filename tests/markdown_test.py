@@ -352,3 +352,13 @@ class TestClass(unittest.TestCase):
         self.assertParserPlainIdentity("***")
         self.assertParserPlainIdentity("[a](b)")
         self.assertParserPlainIdentity("[a][b]")
+
+    def test_weechat_plain_removes_custom_colour_markdown(self):
+        self.assertParserRendersPlain("[abc]{fg=red}", "abc")
+        self.assertParserRendersPlain("[abc]{bg=red}", "abc")
+        self.assertParserRendersPlain("[abc]{fg=black bg=red}", "abc")
+        self.assertParserRendersPlain("[abc]{ fg=black bg=red }", "abc")
+        self.assertParserRendersPlain("[abc]{fg=black bg=red }", "abc")
+        self.assertParserRendersPlain("[abc]{ fg=black bg=red}", "abc")
+        self.assertParserRendersPlain("[abc]{   fg=black bg=red  }", "abc")
+        self.assertParserRendersPlain("*[abc]{fg=black bg=red}*", "*abc*")
