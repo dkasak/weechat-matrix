@@ -140,16 +140,6 @@ class MatrixHtmlParser(HTMLParser):
                 ", but there's no current node.".format(tag)
             )
 
-        if self.current_node.tag != tag:
-            # open a new tag instead of erroring out because of mismatch
-            self.open_element(tag)
-            return
-
-        if not self.node_stack:
-            # treat spurious close tags as opening a phantom div
-            self.open_element("div")
-            return
-
         self.last_node = self.current_node
         self.current_node = self.node_stack.pop()
 
