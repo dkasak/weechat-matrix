@@ -160,8 +160,7 @@ class MatrixHtmlParser(HTMLParser):
                     self.current_node.set("data-mx-color", value)
                 elif key in ["data-mx-bg-color"]:
                     self.current_node.set("data-mx-bg-color", value)
-
-        if tag == "code":
+        elif tag == "code":
             for key, value in attrs:
                 if key == "class" and value.startswith("language-"):
                     lang = value.split("-", 1)[1]
