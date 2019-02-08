@@ -231,7 +231,7 @@ class TestClass(unittest.TestCase):
         assert (parser.to_html() ==
                 "<strong>Hello</strong> <em>world</em>")
 
-    def test_weechat_formatter(self):
+    def test_weechat_formatter_italic_bold(self):
         formatted = Parser.from_weechat("*Hello*")
         assert "\x1b[03mHello\x1b[023m" == formatted.to_weechat()
 
