@@ -60,10 +60,6 @@ except ImportError:
 
 
 
-class Attribute(Enum):
-    emph = 0
-    bold = 1
-    underline = 2
 
 DEFAULT_ATTRIBUTES = {
     "bold": False,
