@@ -263,7 +263,7 @@ class TestClass(unittest.TestCase):
             "\x1b[09m\x1b[01mHello\x1b[021m\x1b[029m"
         )
 
-    def test_weechat_formatter_multiple_childs(self):
+    def test_weechat_formatter_multiple_children(self):
         self.assertParserRendersHtml(
             "***Hello*** *world*",
             "<p><strong><em>Hello</em></strong> <em>world</em></p>"
