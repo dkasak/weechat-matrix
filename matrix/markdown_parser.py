@@ -439,9 +439,9 @@ class Parser(Markdown):
 
     @classmethod
     def from_html(cls, html_source):
-        """Create a parser object from the weechat input line string.
+        """Create a parser object from HTML input.
 
-        Only the allowed subset of HTML in the matrix spec is supported.
+        Only the subset of HTML allowed by the Matrix spec is supported.
         """
         parser = cls()
         html_parser = MatrixHtmlParser()
