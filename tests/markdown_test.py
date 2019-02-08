@@ -235,10 +235,6 @@ class TestClass(unittest.TestCase):
         assert (etree.tostring(parser.document_tree) ==
                 b"<div><strong>Hello</strong> <em>world</em></div>")
 
-        parser = Parser.from_html("<strong>Hello</strong> <em>world</em>")
-        assert (parser.to_html() ==
-                "<strong>Hello</strong> <em>world</em>")
-
     def test_weechat_formatter_italic_bold(self):
         formatted = Parser.from_weechat("*Hello*")
         assert "\x1b[03mHello\x1b[023m" == formatted.to_weechat()
