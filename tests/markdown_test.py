@@ -24,6 +24,14 @@ class TestClass(unittest.TestCase):
         weechat_formatted = Parser.weechat_from_html(source)
         self.assertMultiLineEqual(weechat_formatted, expected)
 
+    def assertParserRendersPlain(self, source, expected):
+        parser = Parser.from_weechat(source)
+        self.assertMultiLineEqual(parser.to_plain(), expected)
+
+    def assertParserPlainIdentity(self, source):
+        parser = Parser.from_weechat(source)
+        self.assertMultiLineEqual(parser.to_plain(), source)
+
     def dedent(self, text):
         if text.endswith("\n"):
             return textwrap.dedent(text.strip('/n'))
@@ -326,3 +334,25 @@ class TestClass(unittest.TestCase):
             "(\x1b[039m\x1b[038;5;214m\"Hello world\"\x1b[039m\x1b[038;5;252m)"
             "\x1b[039m\x1b[038;5;252m\n\x1b[039m"
         )
+
+    def test_weechat_plain_identities(self):
+        self.assertParserPlainIdentity("*a*")
+        self.assertParserPlainIdentity("a *b* c")
+        self.assertParserPlainIdentity("**a**")
+        self.assertParserPlainIdentity("a **b** c")
+        self.assertParserPlainIdentity("***a***")
+        self.assertParserPlainIdentity("a ***b*** c")
+        self.assertParserPlainIdentity("`a`")
+        self.assertParserPlainIdentity("a `b` c")
+        self.assertParserPlainIdentity("~a~")
+        self.assertParserPlainIdentity("a ~b~ c")
+        self.assertParserPlainIdentity("_a_")
+        self.assertParserPlainIdentity("a _b_ c")
+        self.assertParserPlainIdentity("~~a~~")
+        self.assertParserPlainIdentity("a ~~b~~ c")
+        self.assertParserPlainIdentity("# heading")
+        self.assertParserPlainIdentity("## heading")
+        self.assertParserPlainIdentity("### heading")
+        self.assertParserPlainIdentity("***")
+        self.assertParserPlainIdentity("[a](b)")
+        self.assertParserPlainIdentity("[a][b]")
