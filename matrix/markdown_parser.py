@@ -567,15 +567,6 @@ class Parser(Markdown):
         out = self._to_weechat(self.document_tree)
         return out.strip()
 
-    def _add_plain_attribute(self, text, element):
-        attribute = element.tag
-
-        if attribute == "em":
-            return "*{}*".format(text)
-
-        else:
-            return text
-
     def _to_plain(self, element):
         plain = self.source
 
