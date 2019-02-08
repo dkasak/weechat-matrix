@@ -83,7 +83,7 @@ class FormattedString:
         self.text = text
 
     def __repr__(self):
-        return "FormmattedString({} {})".format(self.text, self.attributes)
+        return "FormattedString({} {})".format(self.text, self.attributes)
 
 
 
