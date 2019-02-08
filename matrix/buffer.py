@@ -1363,9 +1363,9 @@ class RoomBuffer(object):
             formatted = None
 
             if event.formatted_body:
-                formatted = Parser.from_html(event.formatted_body)
+                formatted = Parser.weechat_from_html(event.formatted_body)
 
-            data = formatted.to_weechat() if formatted else event.body
+            data = formatted if formatted else event.body
 
             extra_prefix = (self.warning_prefix if event.decrypted
                             and not event.verified else "")
@@ -1617,9 +1617,9 @@ class RoomBuffer(object):
 
         formatted = None
         if event.formatted_body:
-            formatted = Parser.from_html(event.formatted_body)
+            formatted = Parser.weechat_from_html(event.formatted_body)
 
-        data = formatted.to_weechat() if formatted else event.body
+        data = formatted if formatted else event.body
         # TODO this isn't right if the data has multiple lines, that is
         # everything is printed on a signle line and newlines are shown as a
         # space.
@@ -1675,9 +1675,9 @@ class RoomBuffer(object):
         formatted = None
 
         if event.formatted_body:
-            formatted = Parser.from_html(event.formatted_body)
+            formatted = Parser.weechat_from_html(event.formatted_body)
 
-        data = formatted.to_weechat() if formatted else event.body
+        data = formatted if formatted else event.body
         user = self.weechat_buffer._get_user(nick)
         date = server_ts_to_weechat(event.server_timestamp)
         self.weechat_buffer._print_message(user, data, date, tags)

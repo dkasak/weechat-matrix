@@ -438,10 +438,22 @@ class Parser(Markdown):
         )
 
     @classmethod
-    def from_html(cls, html_source):
-        """Create a parser object from HTML input.
+    def weechat_from_html(cls, html_source):
+        """Convert Matrix-style HTML to a string for weechat to display.
 
         Only the subset of HTML allowed by the Matrix spec is supported.
+
+        Note:
+        This function is a bit of a hack since we're using the Markdown parser
+        to parse Matrix-style HTML by replacing the Markdown parser's internal
+        parse tree with one produced by MatrixHtmlParser. Because of this, we
+        don't have the original Markdown source available in this case. This
+        would complicate the implementation of to_plain().
+
+        However, we sidestep this problem by making this method return
+        weechat-formatted output immediately instead of returning a parser
+        instance. This is okay since we never want the original Markdown source
+        when parsing HTML anyway.
         """
         parser = cls()
         html_parser = MatrixHtmlParser()
@@ -449,7 +461,7 @@ class Parser(Markdown):
         parser.source = html_source
         parser.document_tree = html_parser.document_tree
 
-        return parser
+        return parser.to_weechat()
 
     def _add_attribute(self, text, element, preformatted):
         attribute = element.tag

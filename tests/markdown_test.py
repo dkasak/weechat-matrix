@@ -21,8 +21,8 @@ class TestClass(unittest.TestCase):
         self.assertMultiLineEqual(parser.to_html(), expected)
 
     def assertParserRendersWeechat(self, source, expected):
-        parser = Parser.from_html(source)
-        self.assertMultiLineEqual(parser.to_weechat(), expected)
+        weechat_formatted = Parser.weechat_from_html(source)
+        self.assertMultiLineEqual(weechat_formatted, expected)
 
     def dedent(self, text):
         if text.endswith("\n"):
@@ -215,7 +215,7 @@ class TestClass(unittest.TestCase):
 
     def test_to_and_from_html(self):
         parser = Parser.from_weechat("\x0301T\x0302e\x0303s\x0304t")
-        assert Parser.from_html(parser.to_html()).to_html() == parser.to_html()
+        assert Parser.weechat_from_html(parser.to_html()) == parser.to_weechat()
 
     def test_html_parser(self):
         parser = MatrixHtmlParser()
