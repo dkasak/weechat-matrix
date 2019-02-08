@@ -577,17 +577,7 @@ class Parser(Markdown):
             return text
 
     def _to_plain(self, element):
-        text = ""
-
-        for child in element:
-            text += self._to_plain(child)
-
-        text += (element.text or "")
-        text = self._add_plain_attribute(text, element)
-        text += (element.tail or "")
-
-        return text
-        pass
+        return self.source
 
     def to_plain(self):
         """Convert the parsed document to a plain string.
