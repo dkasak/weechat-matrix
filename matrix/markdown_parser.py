@@ -23,7 +23,6 @@ import textwrap
 import re
 
 from builtins import super, str
-from enum import Enum
 from typing import List
 
 from markdown import Markdown
