@@ -107,7 +107,7 @@ EncrytpionQueueItem = NamedTuple(
     "EncrytpionQueueItem",
     [
         ("message_type", str),
-        ("body", Union[Formatted, Parser]),
+        ("message", Union[str, Parser]),
     ],
 )
 
