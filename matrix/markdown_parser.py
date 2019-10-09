@@ -381,7 +381,7 @@ class MarkdownColor(InlineProcessor):
         return el, m.start(0), m.end(0)
 
 
-class Weechat(Extension):
+class WeechatExt(Extension):
     def extendMarkdown(self, md):
         self.md = md
 
@@ -396,7 +396,7 @@ class Weechat(Extension):
 
 class Parser(Markdown):
     def __init__(self):
-        super().__init__(extensions=[Weechat()])
+        super().__init__(extensions=[WeechatExt()])
         self.source = None
         self.document_tree = None
         self.lines = None
