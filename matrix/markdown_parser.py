@@ -510,9 +510,7 @@ class Parser(Markdown):
             return string_color(text, color_pair(color, bg_color))
 
         elif attribute == "blockquote":
-            return self.textwrapper.fill(
-                W.string_remove_color(text.replace("\n", ""), "")
-            )
+            return self.textwrapper.fill(text.replace("\n", ""))
 
         elif attribute == "code":
             code_color_pair = color_pair(
