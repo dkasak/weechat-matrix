@@ -138,6 +138,8 @@ class MatrixHtmlParser(HTMLParser):
                 "Trying to close a tag (<{}>)"
                 ", but there's no current node.".format(tag)
             )
+        elif self.current_node.tag != tag or not self.node_stack:
+            raise ValueError("Malformed HTML input received.")
 
         self.last_node = self.current_node
         self.current_node = self.node_stack.pop()
@@ -444,6 +446,8 @@ class Parser(Markdown):
 
         Only the subset of HTML allowed by the Matrix spec is supported.
 
+        May return None if the input is malformed.
+
         Note:
         This function is a bit of a hack since we're using the Markdown parser
         to parse Matrix-style HTML by replacing the Markdown parser's internal
@@ -458,7 +462,13 @@ class Parser(Markdown):
         """
         parser = cls()
         html_parser = MatrixHtmlParser()
-        html_parser.feed(html_source)
+
+        try:
+            html_parser.feed(html_source)
+        except ValueError:
+            # TODO: Log this somewhere.
+            return None
+
         parser.source = html_source
         parser.document_tree = html_parser.document_tree
 
