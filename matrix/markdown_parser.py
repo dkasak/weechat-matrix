@@ -31,15 +31,14 @@ from markdown.util import etree
 from markdown.preprocessors import Preprocessor
 from markdown.inlinepatterns import InlineProcessor, SimpleTagPattern
 
-from pygments import highlight
-from pygments.formatter import get_style_by_name
-from pygments.lexers import get_lexer_by_name
-from pygments.util import ClassNotFound
+import pygments
+import pygments.formatter
+import pygments.lexers
+import pygments.util
 
 import matrix.globals as G
 from matrix.globals import W
 from matrix.colors import (
-    WeechatFormatter,
     color_line_to_weechat,
     color_weechat_to_html,
     color_html_to_weechat
@@ -89,6 +88,9 @@ class FormattedString:
     def __repr__(self):
         return "FormattedString({} {})".format(self.text, self.attributes)
 
+
+class MatrixHTMLException(Exception):
+    pass
 
 
 class MatrixHtmlParser(HTMLParser):
@@ -430,16 +432,6 @@ class Parser(Markdown):
         parser.document_tree = root
         return parser
 
-    @property
-    def textwrapper(self):
-        quote_pair = color_pair(G.CONFIG.color.quote_fg,
-                                G.CONFIG.color.quote_bg)
-        return textwrap.TextWrapper(
-            width=67,
-            initial_indent="{}> ".format(W.color(quote_pair)),
-            subsequent_indent="{}> ".format(W.color(quote_pair)),
-        )
-
     @classmethod
     def weechat_from_html(cls, html_source):
         """Convert Matrix-style HTML to a string for weechat to display.
@@ -472,7 +464,80 @@ class Parser(Markdown):
         parser.source = html_source
         parser.document_tree = html_parser.document_tree
 
-        return parser.to_weechat()
+        return WeechatFormatter().format(html_parser)
+
+
+    def _to_plain(self, element):
+        plain = self.source
+
+        # remove custom color syntax
+        plain = re.sub(color_re, r"\1", plain)
+
+        return plain
+
+    def to_plain(self):
+        """Convert the parsed document to a plain string.
+
+        This is useful when sending messages, this part should go into the body
+        while the to_html() output should go into the formatted_body.
+        """
+        out = self._to_plain(self.document_tree)
+        return out.strip()
+
+    def to_html(self):
+        """Convert the parsed document to a html string."""
+        output = self.serializer(self.document_tree)
+
+        try:
+            start = output.index(
+                '<%s>' % self.doc_tag) + len(self.doc_tag) + 2
+            end = output.rindex('</%s>' % self.doc_tag)
+            output = output[start:end].strip()
+        except ValueError:  # pragma: no cover
+            if output.strip().endswith('<%s />' % self.doc_tag):
+                # We have an empty document
+                output = ''
+
+        # Run the text post-processors
+        for pp in self.postprocessors:
+            output = pp.run(output)
+
+        return output.strip()
+
+
+class WeechatFormatter:
+    def __init__(self):
+        self.preformatted = False
+        self.indent = 0
+
+    def format(self, parser):
+        """Convert the parsed document to a string for weechat to display."""
+        out = self._format(parser.document_tree)
+        return out.strip()
+
+    def _format(self, element, preformatted=False):
+        text = (element.text or "")
+
+        if element.tag == "pre":
+            preformatted = True
+
+        for child in element:
+            text += self._format(child, preformatted)
+
+        text = self._add_attribute(text, element, preformatted)
+        text += (element.tail or "")
+
+        return text
+
+    @property
+    def textwrapper(self):
+        quote_pair = color_pair(G.CONFIG.color.quote_fg,
+                                G.CONFIG.color.quote_bg)
+        return textwrap.TextWrapper(
+            width=67,
+            initial_indent="{}> ".format(W.color(quote_pair)),
+            subsequent_indent="{}> ".format(W.color(quote_pair)),
+        )
 
     def _add_attribute(self, text, element, preformatted):
         attribute = element.tag
@@ -522,8 +587,8 @@ class Parser(Markdown):
 
             if preformatted:
                 try:
-                    lexer = get_lexer_by_name(element.get("class"))
-                except ClassNotFound:
+                    lexer = pygments.lexers.get_lexer_by_name(element.get("class"))
+                except pygments.util.ClassNotFound:
                     if G.CONFIG.look.code_blocks:
                         return colored_text_block(
                             text,
@@ -534,8 +599,8 @@ class Parser(Markdown):
                                                       code_color_pair)
 
                 try:
-                    style = get_style_by_name(G.CONFIG.look.pygments_style)
-                except ClassNotFound:
+                    style = pygments.formatter.get_style_by_name(G.CONFIG.look.pygments_style)
+                except pygments.util.ClassNotFound:
                     style = "native"
 
                 if G.CONFIG.look.code_blocks:
@@ -545,10 +610,10 @@ class Parser(Markdown):
 
                 # highlight adds a newline to the end of the string, remove
                 # it from the output
-                highlighted_code = highlight(
+                highlighted_code = pygments.highlight(
                     code_block,
                     lexer,
-                    WeechatFormatter(style=style)
+                    WeechatPygmentsFormatter(style=style)
                 ).rstrip()
 
                 return highlighted_code
@@ -557,58 +622,48 @@ class Parser(Markdown):
         else:
             return text
 
-    def _to_weechat(self, element, preformatted=False):
-        text = (element.text or "")
 
-        if element.tag == "pre":
-            preformatted = True
+class WeechatPygmentsFormatter(pygments.formatter.Formatter):
+    def __init__(self, **options):
+        pygments.formatter.Formatter.__init__(self, **options)
+        self.styles = {}
 
-        for child in element:
-            text += self._to_weechat(child, preformatted)
+        for token, style in self.style:
+            start = end = ""
+            if style["color"]:
+                start += "{}".format(
+                    W.color(color_html_to_weechat(str(style["color"])))
+                )
+                end = "{}".format(W.color("resetcolor")) + end
+            if style["bold"]:
+                start += W.color("bold")
+                end = W.color("-bold") + end
+            if style["italic"]:
+                start += W.color("italic")
+                end = W.color("-italic") + end
+            if style["underline"]:
+                start += W.color("underline")
+                end = W.color("-underline") + end
+            self.styles[token] = (start, end)
 
-        text = self._add_attribute(text, element, preformatted)
-        text += (element.tail or "")
+    def format(self, tokensource, outfile):
+        lastval = ""
+        lasttype = None
 
-        return text
+        for ttype, value in tokensource:
+            while ttype not in self.styles:
+                ttype = ttype.parent
 
-    def to_weechat(self):
-        """Convert the parsed document to a string for weechat to display."""
-        out = self._to_weechat(self.document_tree)
-        return out.strip()
+            if ttype == lasttype:
+                lastval += value
+            else:
+                if lastval:
+                    stylebegin, styleend = self.styles[lasttype]
+                    outfile.write(stylebegin + lastval + styleend)
+                # set lastval/lasttype to current values
+                lastval = value
+                lasttype = ttype
 
-    def _to_plain(self, element):
-        plain = self.source
-
-        # remove custom color syntax
-        plain = re.sub(color_re, r"\1", plain)
-
-        return plain
-
-    def to_plain(self):
-        """Convert the parsed document to a plain string.
-
-        This is useful when sending messages, this part should go into the body
-        while the to_html() output should go into the formatted_body.
-        """
-        out = self._to_plain(self.document_tree)
-        return out.strip()
-
-    def to_html(self):
-        """Convert the parsed document to a html string."""
-        output = self.serializer(self.document_tree)
-
-        try:
-            start = output.index(
-                '<%s>' % self.doc_tag) + len(self.doc_tag) + 2
-            end = output.rindex('</%s>' % self.doc_tag)
-            output = output[start:end].strip()
-        except ValueError:  # pragma: no cover
-            if output.strip().endswith('<%s />' % self.doc_tag):
-                # We have an empty document
-                output = ''
-
-        # Run the text post-processors
-        for pp in self.postprocessors:
-            output = pp.run(output)
-
-        return output.strip()
+        if lastval:
+            stylebegin, styleend = self.styles[lasttype]
+            outfile.write(stylebegin + lastval + styleend)
