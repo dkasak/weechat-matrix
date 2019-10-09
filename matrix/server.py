@@ -103,8 +103,8 @@ except NameError:
     FileNotFoundError = IOError
 
 
-EncrytpionQueueItem = NamedTuple(
-    "EncrytpionQueueItem",
+EncryptionQueueItem = NamedTuple(
+    "EncryptionQueueItem",
     [
         ("message_type", str),
         ("message", Union[str, Parser]),
@@ -292,7 +292,7 @@ class MatrixServer(object):
         self.device_deletion_queue = dict()              # type: Dict[str, str]
 
         self.encryption_queue = defaultdict(deque)  \
-            # type: DefaultDict[str, Deque[EncrytpionQueueItem]]
+            # type: DefaultDict[str, Deque[EncryptionQueueItem]]
         self.backlog_queue = dict()      # type: Dict[str, str]
 
         self.user_gc_time = time.time()    # type: float
@@ -950,7 +950,7 @@ class MatrixServer(object):
         try:
             uuid = self.room_send_event(upload.room_id, content)
         except (EncryptionError, GroupEncryptionError):
-            message = EncrytpionQueueItem(upload.msgtype, upload)
+            message = EncryptionQueueItem(upload.msgtype, upload)
             self.encryption_queue[upload.room_id].append(message)
             return False
 
@@ -1053,7 +1053,7 @@ class MatrixServer(object):
                 ignore_unverified_devices=ignore_unverified_devices
             )
         except (EncryptionError, GroupEncryptionError):
-            message = EncrytpionQueueItem(msgtype, message)
+            message = EncryptionQueueItem(msgtype, message)
             self.encryption_queue[room.room_id].append(message)
             return False
 
