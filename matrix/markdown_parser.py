@@ -96,7 +96,7 @@ class MatrixHTMLException(Exception):
 class MatrixHtmlParser(HTMLParser):
     supported_tags = ["strong", "p", "h1", "h2", "h3", "h4", "h5", "h6",
                       "br", "font", "blockquote", "em", "u", "del", "pre",
-                      "code"]
+                      "code", "ul", "li"]
 
     def __init__(self):
         HTMLParser.__init__(self)
@@ -520,6 +520,13 @@ class WeechatFormatter:
 
         if element.tag == "pre":
             preformatted = True
+        elif element.tag == "ul":
+            for child in element:
+                if child.tag == "li":
+                    text += "- {}".format(self._format(child, preformatted))
+                else:
+                    raise MatrixHTMLException("Unhandled '{}' tag inside <ul>".format(child.tag))
+            return text
 
         for child in element:
             text += self._format(child, preformatted)
